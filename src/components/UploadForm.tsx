@@ -16,7 +16,24 @@ interface FieldErrors {
   passcode?: string;
 }
 
+function getPreviewSavedName(
+  file: File | null,
+  customName: string,
+  uploaderName: string
+): string | null {
+  if (!file && !customName.trim()) return null;
+  const original = file?.name || "video.mp4";
+  const dotIndex = original.lastIndexOf(".");
+  const ext = dotIndex > 0 ? original.slice(dotIndex) : "";
+  const originalBase = dotIndex > 0 ? original.slice(0, dotIndex) : original;
+  const title = customName.trim() || originalBase;
+  const user = uploaderName.trim() || "your-name";
+  return `${title} - ${user}${ext}`;
+}
+
 export function UploadForm() {
+  const customNameId = useId();
+  const customNameHintId = useId();
   const uploaderId = useId();
   const uploaderHintId = useId();
   const uploaderErrId = useId();
@@ -30,6 +47,7 @@ export function UploadForm() {
   const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [customName, setCustomName] = useState("");
   const [uploaderName, setUploaderName] = useState("");
   const [note, setNote] = useState("");
   const [passcode, setPasscode] = useState("");
@@ -103,7 +121,10 @@ export function UploadForm() {
     }
   };
 
-  const uploadToDrive = (uploadUrl: string, videoFile: File): Promise<void> => {
+  const uploadToDrive = (
+    uploadUrl: string,
+    videoFile: File
+  ): Promise<{ driveFileId?: string }> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", uploadUrl, true);
@@ -119,7 +140,14 @@ export function UploadForm() {
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           setProgress(100);
-          resolve();
+          let driveFileId: string | undefined;
+          try {
+            const parsed = JSON.parse(xhr.responseText) as { id?: string };
+            driveFileId = parsed.id;
+          } catch {
+            // Response body may be empty or non-JSON; Drive upload still succeeded.
+          }
+          resolve({ driveFileId });
         } else {
           reject(
             new Error(
@@ -170,6 +198,7 @@ export function UploadForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileName: file.name,
+          customName: customName.trim(),
           mimeType: file.type || "video/mp4",
           fileSize: file.size,
           uploaderName: uploaderName.trim(),
@@ -180,6 +209,7 @@ export function UploadForm() {
 
       const sessionData = (await sessionRes.json()) as {
         uploadUrl?: string;
+        savedFileName?: string;
         error?: string;
       };
 
@@ -187,14 +217,38 @@ export function UploadForm() {
         throw new Error(sessionData.error || "Could not start upload session.");
       }
 
-      setUploadStatus("uploading");
-      setStatusMessage(`Uploading "${file.name}" to your Google Drive folder...`);
+      const finalName = sessionData.savedFileName || file.name;
 
-      await uploadToDrive(sessionData.uploadUrl, file);
+      setUploadStatus("uploading");
+      setStatusMessage(`Uploading "${finalName}" to your Google Drive folder...`);
+
+      const { driveFileId } = await uploadToDrive(sessionData.uploadUrl, file);
+
+      let discordNote = "";
+      try {
+        const notifyRes = await fetch("/api/discord/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: finalName,
+            uploaderName: uploaderName.trim(),
+            note: note.trim(),
+            fileSize: file.size,
+            driveFileId,
+            passcode: passcode.trim(),
+          }),
+        });
+        const notifyData = (await notifyRes.json()) as { sent?: boolean };
+        if (notifyData.sent) {
+          discordNote = " Discord notification sent.";
+        }
+      } catch {
+        // Don't fail the upload if Discord notification fails.
+      }
 
       setUploadStatus("success");
       setStatusMessage(
-        `"${file.name}" has been uploaded to Google Drive by ${uploaderName.trim()}.`
+        `Saved as "${finalName}" in Google Drive.${discordNote}`
       );
     } catch (error) {
       setUploadStatus("error");
@@ -205,6 +259,7 @@ export function UploadForm() {
   };
 
   const isBusy = uploadStatus === "preparing" || uploadStatus === "uploading";
+  const previewSavedName = getPreviewSavedName(file, customName, uploaderName);
 
   return (
     <div className="space-y-6">
@@ -250,6 +305,35 @@ export function UploadForm() {
             />
           </div>
         )}
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor={customNameId}
+            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+          >
+            Custom video name (optional)
+          </label>
+          <input
+            id={customNameId}
+            name="customName"
+            type="text"
+            enterKeyHint="next"
+            disabled={isBusy}
+            value={customName}
+            aria-describedby={customNameHintId}
+            onChange={(e) => setCustomName(e.target.value)}
+            placeholder="e.g. Beach Trip Clip 1"
+            className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+          <p
+            id={customNameHintId}
+            className="text-xs text-slate-500 dark:text-slate-400"
+          >
+            {previewSavedName
+              ? `Will be saved in Drive as: ${previewSavedName}`
+              : "Leave blank to use the original filename + your name."}
+          </p>
+        </div>
 
         <div className="space-y-1.5">
           <label
@@ -299,7 +383,7 @@ export function UploadForm() {
             id={uploaderHintId}
             className="text-xs text-slate-500 dark:text-slate-400"
           >
-            Saved in the Google Drive file description so you know who uploaded it.
+            Included in the saved filename and the Google Drive file description.
           </p>
           {errors.uploaderName && (
             <p id={uploaderErrId} className="text-sm text-red-600 dark:text-red-400">

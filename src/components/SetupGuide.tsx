@@ -114,11 +114,16 @@ export function SetupGuide() {
             <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs dark:bg-slate-800">
               .env.local
             </code>{" "}
-            and fill in your values. Optionally set{" "}
+            (or Vercel Environment Variables) and fill in your values. Optionally
+            set{" "}
             <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs dark:bg-slate-800">
               UPLOAD_PASSCODE
             </code>{" "}
-            so only you and your friend can upload.
+            for upload protection and{" "}
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs dark:bg-slate-800">
+              DISCORD_WEBHOOK_URL
+            </code>{" "}
+            to post a Discord notification on every upload.
           </li>
           <li>Restart the Next.js dev server and start uploading!</li>
         </ol>

@@ -54,14 +54,14 @@ export default function HomePage() {
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            3. Optional Passcode
+            3. Custom Name &amp; Discord
           </h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Protect the upload page with a shared passcode in{" "}
+            Saves each video as{" "}
             <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs dark:bg-slate-800">
-              .env.local
+              Custom Name - Your Name
             </code>{" "}
-            so only you and your friend can upload.
+            and notifies your Discord channel via webhook.
           </p>
         </div>
       </section>

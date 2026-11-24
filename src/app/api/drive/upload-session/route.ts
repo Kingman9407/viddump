@@ -6,11 +6,31 @@ import {
 
 interface UploadSessionRequestBody {
   fileName?: string;
+  customName?: string;
   mimeType?: string;
   fileSize?: number;
   uploaderName?: string;
   note?: string;
   passcode?: string;
+}
+
+function sanitizePart(value: string): string {
+  return value.replace(/[\\/:*?"<>|]+/g, "-").trim();
+}
+
+function buildSavedFileName(
+  originalName: string,
+  customName: string | undefined,
+  uploaderName: string
+): string {
+  const dotIndex = originalName.lastIndexOf(".");
+  const ext = dotIndex > 0 ? originalName.slice(dotIndex) : "";
+  const originalBase = dotIndex > 0 ? originalName.slice(0, dotIndex) : originalName;
+
+  const titlePart = sanitizePart(customName?.trim() || originalBase) || "video";
+  const userPart = sanitizePart(uploaderName) || "user";
+
+  return `${titlePart} - ${userPart}${ext}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -66,10 +86,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const savedFileName = buildSavedFileName(
+    fileName,
+    body.customName,
+    uploaderName
+  );
+
   try {
     const origin = request.headers.get("origin");
     const uploadUrl = await createResumableUploadSession({
-      fileName,
+      fileName: savedFileName,
       mimeType,
       fileSize,
       uploaderName,
@@ -77,7 +103,7 @@ export async function POST(request: NextRequest) {
       origin,
     });
 
-    return NextResponse.json({ uploadUrl });
+    return NextResponse.json({ uploadUrl, savedFileName });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to initialize upload.";
