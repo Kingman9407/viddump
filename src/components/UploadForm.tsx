@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import { UploadProgress } from "@/components/UploadProgress";
 import { VideoDropzone } from "@/components/VideoDropzone";
@@ -263,26 +262,6 @@ export function UploadForm() {
 
   return (
     <div className="space-y-6">
-      {driveStatus && !driveStatus.configured && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
-        >
-          <p className="font-semibold">Google Drive is not connected yet</p>
-          <p className="mt-1 text-amber-800 dark:text-amber-300">
-            Add your Google OAuth2 credentials and folder ID in{" "}
-            <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs dark:bg-amber-900/60">
-              .env.local
-            </code>{" "}
-            before uploading.{" "}
-            <Link href="/setup" className="font-semibold underline underline-offset-2">
-              View setup guide
-            </Link>
-            .
-          </p>
-        </div>
-      )}
-
       <form
         noValidate
         onSubmit={handleSubmit}
@@ -475,15 +454,6 @@ export function UploadForm() {
           >
             {isBusy ? "Uploading..." : "Upload to Google Drive"}
           </button>
-
-          {uploadStatus === "success" && (
-            <Link
-              href="/videos"
-              className="min-h-12 inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-            >
-              View in Videos →
-            </Link>
-          )}
         </div>
       </form>
     </div>

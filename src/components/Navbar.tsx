@@ -2,13 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DriveStatusBadge } from "@/components/DriveStatusBadge";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/upload", label: "Upload" },
-  { href: "/videos", label: "Videos" },
-  { href: "/setup", label: "Drive Setup" },
 ];
 
 export function Navbar() {
@@ -59,10 +56,6 @@ export function Navbar() {
             );
           })}
         </nav>
-
-        <div className="hidden sm:block">
-          <DriveStatusBadge />
-        </div>
       </div>
     </header>
   );
