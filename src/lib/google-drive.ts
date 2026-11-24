@@ -168,3 +168,49 @@ export async function listDriveVideos(): Promise<DriveVideoFile[]> {
   const data = (await response.json()) as { files?: DriveVideoFile[] };
   return data.files ?? [];
 }
+
+/**
+ * Fetches metadata for a single Google Drive file.
+ */
+export async function getDriveFileMetadata(
+  fileId: string
+): Promise<DriveVideoFile> {
+  const accessToken = await getGoogleAccessToken();
+  const url = new URL(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`
+  );
+  url.searchParams.set("supportsAllDrives", "true");
+  url.searchParams.set("fields", "id,name,mimeType,size");
+
+  const response = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch Drive file metadata: ${errorText}`);
+  }
+
+  return (await response.json()) as DriveVideoFile;
+}
+
+/**
+ * Streams a file's binary content from Google Drive.
+ */
+export async function fetchDriveFileStream(fileId: string): Promise<Response> {
+  const accessToken = await getGoogleAccessToken();
+  const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`;
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to download Drive file: ${errorText}`);
+  }
+
+  return response;
+}

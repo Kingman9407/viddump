@@ -22,6 +22,12 @@ export default function HomePage() {
             >
               Upload a Video
             </Link>
+            <Link
+              href="/videos"
+              className="min-h-12 inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              Download Videos
+            </Link>
           </div>
         </div>
       </section>
